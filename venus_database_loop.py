@@ -10,7 +10,7 @@ from ops.ecris.devices.venus_plc import VenusPLC, VENUSController
 from ops.ecris.services.venus_plc import PLCDataAquisitionService
 from ops.ecris.model.measurement import MultiValueMeasurement
 
-from .broadcasters import broadcast_venus_data
+from src.broadcasters import broadcast_venus_data
 
 _log = logging.getLogger('ops')
 
