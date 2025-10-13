@@ -10,37 +10,13 @@ from ops.ecris.devices.venus_plc import VenusPLC, VENUSController
 from ops.ecris.services.venus_plc import PLCDataAquisitionService
 from ops.ecris.model.measurement import MultiValueMeasurement
 
+from .broadcasters import broadcast_venus_data
+
 _log = logging.getLogger('ops')
 
 INFLUX_URL = os.getenv('INFLUX_URL', 'http://localhost:8181')
 INFLUX_TOKEN = os.getenv('INFLUX_TOKEN')
 INFLUX_DB = os.getenv('INFLUX_DB', 'venus_data')
-
-async def broadcast_venus_data(queue: asyncio.Queue, influx_client: InfluxDBClient3):
-    while True:
-        data: MultiValueMeasurement = await queue.get()
-
-        point = Point('venus_plc_data').time(int(data.timestamp * 1e9))
-        
-        field_count = 0
-        for key, value in data.values.items():
-            if key.lower() == 'time':
-                continue
-            
-            point.field(key, value)
-            field_count += 1
-
-        try:
-            await asyncio.to_thread(influx_client.write, record=point)
-            _log.debug(f"Successfully wrote {field_count} fields to InfluxDB.")
-        except InfluxDBError as e:
-            line_protocol = point.to_line_protocol()
-            _log.error(f"InfluxDB API Error. Code: {e.response.status_code}. Reason: {e.response.reason}")
-            _log.error(f"Failed line protocol was: {line_protocol}")
-        except Exception:
-            _log.exception("An unexpected error occurred during InfluxDB write.")
-            
-        queue.task_done()
 
 async def venus_data_loop(update_interval: float):
     if not INFLUX_TOKEN:

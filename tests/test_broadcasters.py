@@ -8,7 +8,7 @@ from influxdb_client_3 import Point
 from influxdb_client_3.exceptions import InfluxDBError
 
 from ops.ecris.model.measurement import MultiValueMeasurement
-import src.venus_database_loop as service 
+from src.broadcasters import broadcast_venus_data
 
 pytestmark = pytest.mark.asyncio
 
@@ -38,7 +38,7 @@ async def test_broadcast_venus_data_success(mock_influx_client, sample_data):
     await queue.put(sample_data)
 
     task = asyncio.create_task(
-        service.broadcast_venus_data(queue, mock_influx_client)
+        broadcast_venus_data(queue, mock_influx_client)
     )
 
     await queue.join()
@@ -49,6 +49,7 @@ async def test_broadcast_venus_data_success(mock_influx_client, sample_data):
     call_args, call_kwargs = mock_influx_client.write.call_args
     assert 'record' in call_kwargs
     point_arg: Point = call_kwargs['record']
+    assert point_arg._name == 'venus_plc_data'
 
     line_protocol = point_arg.to_line_protocol()
 
@@ -70,7 +71,7 @@ async def test_broadcast_venus_data_influxdb_error(mock_influx_client, sample_da
     caplog.set_level(logging.ERROR)
 
     task = asyncio.create_task(
-        service.broadcast_venus_data(queue, mock_influx_client)
+        broadcast_venus_data(queue, mock_influx_client)
     )
     await queue.join()
     task.cancel()
