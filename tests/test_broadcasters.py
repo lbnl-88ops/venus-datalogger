@@ -1,10 +1,9 @@
 import asyncio
 import logging
-import time
-from unittest.mock import MagicMock, AsyncMock, call
+from unittest.mock import MagicMock
+from typing import List
 
 import pytest
-from pytest import approx
 from influxdb_client_3 import Point
 from influxdb_client_3.exceptions import InfluxDBError
 
@@ -30,6 +29,7 @@ def sample_data():
             'pressure': 987,
             'valve_open': True,
             'inj_i': 4814.1, # in the superconductor category
+            'inj_mbar': 123.0, # in the vacuum category
             'time': 999999.99,
         }
     )
@@ -46,12 +46,12 @@ async def test_broadcast_venus_data_success(mock_influx_client, sample_data):
     await queue.join()
     task.cancel() # Clean up the task
 
-    assert mock_influx_client.write.call_count == 2
-    expected_tables = ['venus_plc_data', 'superconductor']
+    expected_tables = ['venus_plc_data', 'superconductor', 'vacuum']
+    _, kwargs = mock_influx_client.write.call_args
 
     points_written = {}
-    for call in mock_influx_client.write.call_args_list:
-        point_arg: Point = call.kwargs['record']
+    points_arg: List[Point] = kwargs['record']
+    for point_arg in points_arg:
         line_protocol = point_arg.to_line_protocol()
         for table in expected_tables:
             if line_protocol.startswith(table):
@@ -70,6 +70,11 @@ async def test_broadcast_venus_data_success(mock_influx_client, sample_data):
     assert 'inj_i=4814.1' in superconductor_point_lp
     assert 'temp' not in superconductor_point_lp # Ensure general keys are NOT here
     assert superconductor_point_lp.endswith(' 12389000000000')
+
+    vacuum_point_lp = points_written['vacuum']
+    assert 'inj_mbar=123' in vacuum_point_lp
+    assert 'temp' not in vacuum_point_lp # Ensure general keys are NOT here
+    assert vacuum_point_lp.endswith(' 12389000000000')
 
 
 async def test_broadcast_venus_data_influxdb_error(mock_influx_client, sample_data, caplog):
@@ -93,5 +98,3 @@ async def test_broadcast_venus_data_influxdb_error(mock_influx_client, sample_da
 
     assert "InfluxDB API Error" in caplog.text
     assert "Code: 400" in caplog.text
-    assert "Reason: Bad Request" in caplog.text
-    assert "Failed line protocol was:" in caplog.text

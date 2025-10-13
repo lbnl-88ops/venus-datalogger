@@ -8,41 +8,37 @@ from ops.ecris.devices.venus_plc import VENUS_PLC_DATA_DEFINITIONS as DEFS
 
 _log = getLogger(__name__)
 
+CATEGORY_MAP = {
+    key.lower(): category.lower().replace(' ', '_').replace('-', '_')
+    for key, category in DEFS.category_by_key.items()
+}
+
 async def broadcast_venus_data(queue: asyncio.Queue, influx_client: InfluxDBClient3):
     while True:
         data: MultiValueMeasurement = await queue.get()
 
-        category = "Superconductor"
-        super_conductor_keys = DEFS.keys_by_category[category]
-        category_table_name = category.lower().replace(' ', '_').replace('-', '_')
-
-        point = Point('venus_plc_data').time(int(data.timestamp * 1e9))
-        category_point = Point(category_table_name).time(int(data.timestamp * 1e9))
-        has_general_fields = False
-        has_category_fields = False
+        points_by_table = {}
         
         field_count = 0
         for key, value in data.values.items():
-            if key.lower() == 'time':
+            key_lower = key.lower()
+            if key_lower == 'time':
                 continue
-            if key.lower() in super_conductor_keys:
-                category_point.field(key, value)
-                has_category_fields = True
-            else:
-                point.field(key, value)
-                has_general_fields = True
-            field_count += 1
+            table_name = CATEGORY_MAP.get(key_lower)
+            if table_name is None:
+                table_name = 'venus_plc_data'
+
+            if table_name not in points_by_table:
+                points_by_table[table_name] = Point(table_name).time(int(data.timestamp*1E9))
+            points_by_table[table_name].field(key, value)
         try:
-            if has_general_fields:
-                await asyncio.to_thread(influx_client.write, record=point)
-            if has_category_fields:
-                await asyncio.to_thread(influx_client.write, record=category_point)
+            points_to_write = list(points_by_table.values())
+            await asyncio.to_thread(influx_client.write, record=points_to_write)
             _log.debug(f"Successfully wrote {field_count} fields to InfluxDB.")
         except InfluxDBError as e:
-            line_protocol = point.to_line_protocol()
-            _log.error(f"InfluxDB API Error. Code: {e.response.status_code}. Reason: {e.response.reason}")
-            _log.error(f"Failed line protocol was: {line_protocol}")
+            _log.error(f"InfluxDB API Error during batch write. Code: {e.response.status_code}")
+            for p in points_to_write:
+                _log.error(f" -> {p.to_line_protocol()}")
         except Exception:
             _log.exception("An unexpected error occurred during InfluxDB write.")
-            
         queue.task_done()
