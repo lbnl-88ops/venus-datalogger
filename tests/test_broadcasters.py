@@ -1,9 +1,10 @@
 import asyncio
 import logging
 import time
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import MagicMock, AsyncMock, call
 
 import pytest
+from pytest import approx
 from influxdb_client_3 import Point
 from influxdb_client_3.exceptions import InfluxDBError
 
@@ -23,11 +24,12 @@ def mock_influx_client():
 def sample_data():
     return MultiValueMeasurement(
         source='TEST PLC',
-        timestamp=time.time(),
+        timestamp=12389,
         values={
             'temp': 123.45,
             'pressure': 987,
             'valve_open': True,
+            'inj_i': 4814.1, # in the superconductor category
             'time': 999999.99,
         }
     )
@@ -44,19 +46,30 @@ async def test_broadcast_venus_data_success(mock_influx_client, sample_data):
     await queue.join()
     task.cancel() # Clean up the task
 
-    mock_influx_client.write.assert_called_once()
+    assert mock_influx_client.write.call_count == 2
+    expected_tables = ['venus_plc_data', 'superconductor']
 
-    call_args, call_kwargs = mock_influx_client.write.call_args
-    assert 'record' in call_kwargs
-    point_arg: Point = call_kwargs['record']
-    assert point_arg._name == 'venus_plc_data'
+    points_written = {}
+    for call in mock_influx_client.write.call_args_list:
+        point_arg: Point = call.kwargs['record']
+        line_protocol = point_arg.to_line_protocol()
+        for table in expected_tables:
+            if line_protocol.startswith(table):
+                points_written[table] = point_arg.to_line_protocol()
+                break
+    assert expected_tables == list(points_written.keys())
 
-    line_protocol = point_arg.to_line_protocol()
+    general_point_lp = points_written['venus_plc_data']
+    assert 'temp=123.45' in general_point_lp
+    assert 'pressure=987i' in general_point_lp
+    assert 'valve_open=true' in general_point_lp
+    assert 'inj_i' not in general_point_lp # Ensure the category key is NOT here
+    assert general_point_lp.endswith(' 12389000000000') # Robustly check the timestamp
 
-    assert 'time=' not in line_protocol
-    assert 'temp=123.45' in line_protocol
-    assert 'valve_open=true' in line_protocol
-    assert 'pressure=987i' in line_protocol
+    superconductor_point_lp = points_written['superconductor']
+    assert 'inj_i=4814.1' in superconductor_point_lp
+    assert 'temp' not in superconductor_point_lp # Ensure general keys are NOT here
+    assert superconductor_point_lp.endswith(' 12389000000000')
 
 
 async def test_broadcast_venus_data_influxdb_error(mock_influx_client, sample_data, caplog):
