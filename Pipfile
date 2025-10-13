@@ -5,6 +5,8 @@ name = "pypi"
 
 [packages]
 influxdb3-python = "*"
+pytest = "*"
+pytest-asyncio = "*"
 
 [dev-packages]
 
