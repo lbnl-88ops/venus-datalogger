@@ -4,9 +4,10 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-influxdb3-python = "*"
 pytest = "*"
 pytest-asyncio = "*"
+influxdb3-python = "*"
+pytest-cov = "*"
 
 [dev-packages]
 
