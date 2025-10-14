@@ -8,8 +8,12 @@ pytest = "*"
 pytest-asyncio = "*"
 influxdb3-python = "*"
 pytest-cov = "*"
+"ops.ecris" = {ref = "v0.1", git = "ssh://git@github.com/lbnl-88ops/ecris.git"}
 
 [dev-packages]
 
 [requires]
 python_version = "3.13"
+
+[pipenv]
+allow_prereleases = true

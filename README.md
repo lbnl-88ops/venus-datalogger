@@ -1,2 +1,2 @@
-# venus_database_service
+# venus-datalogger
 A python async service that collects data from the VENUS PLC and stores the data in an influxDB instance.
