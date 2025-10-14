@@ -1,0 +1,15 @@
+[Unit]
+Description=VENUS PLC Datalogger Service
+After=network.target
+
+[Service]
+User=ecris
+Group=ecris
+WorkingDirectory=/opt/venus-datalogger
+EnvironmentFile=/etc/default/venus-datalogger
+ExecStart=/opt/venus-datalogger/.venv/bin/python3 /opt/venus-datalogger/venus_datalogger.py --interval 1.0
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
