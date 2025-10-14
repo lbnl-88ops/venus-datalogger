@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "858ed949115095629805c5b124e0c17759a16723f470aea13af6621f2e3ae698"
+            "sha256": "9e87f9f68c960d6c699998d132ff32b770a14de6246ec2e96cf0273f499c1821"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -561,7 +561,7 @@
         },
         "ops.ecris": {
             "git": "ssh://git@github.com/lbnl-88ops/ecris.git",
-            "ref": "daf89a9ad1808211673397e96f495625b36487fd"
+            "ref": "b7815b7a126471548ad0eab88b61cf96843c6636"
         },
         "packaging": {
             "hashes": [
