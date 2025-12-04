@@ -12,11 +12,11 @@ from ops.ecris.drivers.measurement import MultiValueMeasurement
 
 from src.broadcasters import broadcast_venus_data
 
-_log = logging.getLogger('ops')
+_log = logging.getLogger("ops")
 
-INFLUX_URL = os.getenv('INFLUX_URL', 'http://localhost:8181')
-INFLUX_TOKEN = os.getenv('INFLUX_TOKEN')
-INFLUX_DB = os.getenv('INFLUX_DB', 'venus_data')
+INFLUX_URL = os.getenv("INFLUX_URL", "http://localhost:8181")
+INFLUX_TOKEN = os.getenv("INFLUX_TOKEN")
+INFLUX_DB = os.getenv("INFLUX_DB", "venus_data")
 
 
 async def venus_data_loop(update_interval: float):
@@ -24,19 +24,20 @@ async def venus_data_loop(update_interval: float):
         _log.critical("INFLUX_TOKEN environment variable not set. Exiting.")
         return
 
-    _log.info(f'Starting VENUS database loop. Update interval: {
-              update_interval}s')
-    _log.info(f'Connecting to InfluxDB at {INFLUX_URL}, database: {INFLUX_DB}')
+    _log.info(f"Starting VENUS database loop. Update interval: {update_interval}s")
+    _log.info(f"Connecting to InfluxDB at {INFLUX_URL}, database: {INFLUX_DB}")
     influx_client = InfluxDBClient3(
-        host=INFLUX_URL, token=INFLUX_TOKEN, database=INFLUX_DB)
+        host=INFLUX_URL, token=INFLUX_TOKEN, database=INFLUX_DB
+    )
 
     venus_plc = VenusPLC(VENUSController(read_only=True))
     venus_data_service = PLCDataAquisitionService(
-        venus_plc, update_interval=update_interval)
+        venus_plc, update_interval=update_interval
+    )
 
     try:
         await venus_data_service.start()
-        _log.info('Data service running')
+        _log.info("Data service running")
 
         broadcast_task = asyncio.create_task(
             broadcast_venus_data(venus_data_service.data_queue, influx_client)
@@ -53,18 +54,28 @@ async def venus_data_loop(update_interval: float):
         await venus_data_service.stop()
         _log.info("Cleanup complete. Exiting.")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     parser = ArgumentParser(
-        description="VENUS PLC Data Acquisition Service for InfluxDB.")
-    parser.add_argument("-i", "--interval", type=float, default=1.0,
-                        help="Data polling interval in seconds (default: 1.0)")
-    parser.add_argument("-d", "--debug", action="store_true",
-                        help="Enable debug level logging")
+        description="VENUS PLC Data Acquisition Service for InfluxDB."
+    )
+    parser.add_argument(
+        "-i",
+        "--interval",
+        type=float,
+        default=1.0,
+        help="Data polling interval in seconds (default: 1.0)",
+    )
+    parser.add_argument(
+        "-d", "--debug", action="store_true", help="Enable debug level logging"
+    )
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.DEBUG if args.debug else logging.INFO,
-                        format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(
+        level=logging.DEBUG if args.debug else logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+    )
     try:
         asyncio.run(venus_data_loop(update_interval=args.interval))
     except KeyboardInterrupt:
-        _log.info('Program terminated by user.')
+        _log.info("Program terminated by user.")
