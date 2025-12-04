@@ -2,7 +2,9 @@ import asyncio
 import logging
 from argparse import ArgumentParser
 import os
+from typing_extensions import Annotated
 
+import typer
 from influxdb_client_3 import InfluxDBClient3, Point
 from influxdb_client_3.exceptions import InfluxDBError
 
@@ -10,9 +12,12 @@ from ops.ecris.drivers.venus_plc import VenusPLC, VENUSController
 from ops.ecris.services.venus_plc import PLCDataAquisitionService
 from ops.ecris.drivers.measurement import MultiValueMeasurement
 
-from src.broadcasters import broadcast_venus_data
+from venus_datalogger.broadcasters import broadcast_venus_data
 
 _log = logging.getLogger("ops")
+app = typer.Typer(
+    help="VENUS PLC Data Aquisition Service for InfluxDB", no_args_is_help=True
+)
 
 INFLUX_URL = os.getenv("INFLUX_URL", "http://localhost:8181")
 INFLUX_TOKEN = os.getenv("INFLUX_TOKEN")
@@ -55,27 +60,24 @@ async def venus_data_loop(update_interval: float):
         _log.info("Cleanup complete. Exiting.")
 
 
-if __name__ == "__main__":
-    parser = ArgumentParser(
-        description="VENUS PLC Data Acquisition Service for InfluxDB."
-    )
-    parser.add_argument(
-        "-i",
-        "--interval",
-        type=float,
-        default=1.0,
-        help="Data polling interval in seconds (default: 1.0)",
-    )
-    parser.add_argument(
-        "-d", "--debug", action="store_true", help="Enable debug level logging"
-    )
-    args = parser.parse_args()
-
+@app.command()
+def main(
+    interval: Annotated[
+        float, typer.Option("--interval", "-i", help="Data polling interval in seconds")
+    ] = 1.0,
+    debug: Annotated[
+        bool, typer.Option("--debug", "-d", help="Enable debug level logging")
+    ] = False,
+):
     logging.basicConfig(
-        level=logging.DEBUG if args.debug else logging.INFO,
+        level=logging.DEBUG if debug else logging.INFO,
         format="%(asctime)s - %(levelname)s - %(message)s",
     )
     try:
-        asyncio.run(venus_data_loop(update_interval=args.interval))
+        asyncio.run(venus_data_loop(update_interval=interval))
     except KeyboardInterrupt:
         _log.info("Program terminated by user.")
+
+
+if __name__ == "__main__":
+    app()

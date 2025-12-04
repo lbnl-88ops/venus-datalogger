@@ -9,7 +9,8 @@ readme = "README.md"
 requires-python = ">=3.13,<4.0"
 dependencies = [
     "ops-ecris @ git+https://github.com/lbnl-88ops/ecris.git@v0.2.1",
-    "influxdb3-python (>=0.16.0,<0.17.0)"
+    "influxdb3-python (>=0.16.0,<0.17.0)",
+    "typer (>=0.20.0,<0.21.0)"
 ]
 
 [dependency-groups]
@@ -25,4 +26,10 @@ requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-package-mode = false
+packages = [
+	{ include = "venus_datalogger", from = "src" }
+]
+
+[tool.poetry.scripts]
+venus-datalogger = "venus_datalogger.cli:app"
+
