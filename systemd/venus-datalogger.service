@@ -7,7 +7,7 @@ User=ecris
 Group=ecris
 WorkingDirectory=/opt/venus-datalogger
 EnvironmentFile=/etc/default/venus-datalogger
-ExecStart=/opt/venus-datalogger/.venv/bin/python3 /opt/venus-datalogger/venus_datalogger.py --interval 1.0
+ExecStart=/opt/venus-datalogger/.venv/bin/venus-datalogger --interval 1.0
 Restart=always
 RestartSec=5
 
