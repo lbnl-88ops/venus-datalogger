@@ -6,9 +6,9 @@ authors = [
     {name = "Jessica Rehak",email = "rehak@lbl.gov"}
 ]
 readme = "README.md"
-requires-python = ">=3.13,<4.0"
+requires-python = ">=3.12,<4.0"
 dependencies = [
-    "ops-ecris @ git+https://github.com/lbnl-88ops/ecris.git@v0.2.1",
+    "ops-ecris @ git+https://github.com/lbnl-88ops/ecris.git@v0.2.2",
     "influxdb3-python (>=0.16.0,<0.17.0)",
     "typer (>=0.20.0,<0.21.0)"
 ]

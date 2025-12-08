@@ -35,12 +35,14 @@ async def broadcast_venus_data(queue: asyncio.Queue, influx_client: InfluxDBClie
                 # State change checks
                 if csd_in_progress and not last_csd_status:
                     # CSD has started
+                    _log.debug('CSD has started')
                     csd_start_time = int(data.timestamp * 1e9)
                 elif (
                     not csd_in_progress
                     and last_csd_status
                     and csd_start_time is not None
                 ):
+                    _log.debug('CSD has ended')
                     # CSD ended
                     create_csd_annotation = True
                     csd_end_time = int(data.timestamp * 1e9)
@@ -80,10 +82,12 @@ async def broadcast_venus_data(queue: asyncio.Queue, influx_client: InfluxDBClie
             _log.debug(f"Successfully wrote {field_count} fields to InfluxDB.")
         except InfluxDBError as e:
             _log.error(
-                f"InfluxDB API Error during batch write. Code: {e.response.status_code}"
+                f"InfluxDB API Error during batch write. Code: {
+                    e.response.status_code}"
             )
             for p in points_to_write:
                 _log.error(f" -> {p.to_line_protocol()}")
         except Exception:
-            _log.exception("An unexpected error occurred during InfluxDB write.")
+            _log.exception(
+                "An unexpected error occurred during InfluxDB write.")
         queue.task_done()
