@@ -14,6 +14,10 @@ CATEGORY_MAP = {
     for key, category in DEFS.category_by_key.items()
 }
 
+TUNER_NAMES = {
+    1: "Janilee", 2: "Miles", 3: "Damon",  4: "Scott", 5: "Nick", 6: "Devin", 7: "Nishi", 8: "Patrick"
+}
+
 
 async def broadcast_venus_data(queue: asyncio.Queue, influx_client: InfluxDBClient3):
     last_csd_status: Optional[bool] = None
@@ -43,6 +47,12 @@ async def broadcast_venus_data(queue: asyncio.Queue, influx_client: InfluxDBClie
                     and csd_start_time is not None
                 ):
                     _log.debug('CSD has ended')
+                    if "tuner_number" in data.values:
+                        current_tuner = int(data.values["tuner_number"])
+                        tuner = TUNER_NAMES[current_tuner]
+                    else:
+                        tuner = "unknown operator"
+
                     # CSD ended
                     create_csd_annotation = True
                     csd_end_time = int(data.timestamp * 1e9)
@@ -52,7 +62,7 @@ async def broadcast_venus_data(queue: asyncio.Queue, influx_client: InfluxDBClie
                     csd_point.tag("system", "VENUS")
                     csd_point.tag("category", "beam line")
                     csd_point.tag("type", "CSD")
-                    csd_point.field("text", "CSD in progress")
+                    csd_point.field("text", f"Tuner: {tuner}")
                     csd_start_time = None
             last_csd_status = csd_in_progress
 
